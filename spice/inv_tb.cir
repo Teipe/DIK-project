@@ -44,30 +44,23 @@
 .param TRF = 10n
 .param TCLK = 75n
 .param C_ERASE = 5
-.param C_EXPOSE = 255
-.param C_CONVERT = 255
-.param C_READ = 5
 
 *- Pulse Width of control signals
 .param PW_ERASE =  {(C_ERASE +1)*TCLK}
-.param PW_EXPOSE =  {(C_EXPOSE +1)*TCLK}
-.param PW_CONVERT =  {(C_CONVERT +1)*TCLK}
-.param PW_READ =  {(C_READ +1)*TCLK}
 
 *- Delay of control signals
 .param TD_ERASE = {TCLK }
-.param TD_EXPOSE = {TD_ERASE + PW_ERASE + TCLK}
-.param TD_CONVERT = {TD_EXPOSE + PW_EXPOSE + TCLK}
-.param TD_READ = {TD_CONVERT + PW_CONVERT + TCLK}
-.param PERIOD = {TD_READ + PW_READ + TCLK}
+* .param TD_EXPOSE = {TD_ERASE + PW_ERASE + TCLK}
+* .param TD_CONVERT = {TD_EXPOSE + PW_EXPOSE + TCLK}
+* .param TD_READ = {TD_CONVERT + PW_CONVERT + TCLK}
+.param PERIOD = {TD_ERASE + PW_ERASE + TCLK}
 
 *- Analog parameters
 .param VDD = 1.5
-.param VSTORE = 0.9
-.param VADC_MIN = 0.5
-.param VADC_MAX = 1.1
-.param VADC_REF = {VADC_MAX - VADC_MIN}
-.param VADC_LSB = {VADC_REF/256}
+* .param VADC_MIN = 0.5
+* .param VADC_MAX = 1.1
+* .param VADC_REF = {VADC_MAX - VADC_MIN}
+* .param VADC_LSB = {VADC_REF/256}
 
 *----------------------------------------------------------------
 * Sources
@@ -76,51 +69,33 @@ VDD VDD VSS dc VDD
 VSS VSS 0 dc 0
 
 *- Control signals
-VERASE ERASE 0 dc 0 pulse (0 VDD TD_ERASE TRF TRF PW_ERASE PERIOD)
-VEXPOSE EXPOSE 0 dc 0 pulse (0 VDD TD_EXPOSE TRF TRF PW_EXPOSE PERIOD)
-VCONVERT CONVERT 0 dc 0 pulse (0 VDD TD_CONVERT TRF TRF PW_CONVERT PERIOD)
-VREAD READ 0 dc 0 pulse (0 VDD TD_READ TRF TRF PW_READ PERIOD)
-VSTORE VSTORE VSS dc VSTORE
+VIN VIN 0 dc 0 pulse (0 VDD TD_ERASE TRF TRF PW_ERASE PERIOD)
+* VEXPOSE EXPOSE 0 dc 0 pulse (0 VDD TD_EXPOSE TRF TRF PW_EXPOSE PERIOD)
+* VCONVERT CONVERT 0 dc 0 pulse (0 VDD TD_CONVERT TRF TRF PW_CONVERT PERIOD)
+* VREAD READ 0 dc 0 pulse (0 VDD TD_READ TRF TRF PW_READ PERIOD)
+* VSTORE VSTORE 0 dc 0.5
 * Max at 1.385
 * Min at 0.5
 
 *- ADC related sources
-VREF VREF 0 DC VADC_REF
-VMAX VMAX 0 DC VADC_MAX
-VRESET VRESET VMAX DC 0
-VMIN VMIN 0 DC VADC_MIN
+* VREF VREF 0 DC VADC_REF
+* VMAX VMAX 0 DC VADC_MAX
+* VRESET VRESET VMAX DC 0
+* VMIN VMIN 0 DC VADC_MIN
 
 *----------------------------------------------------------------
 * BIAS
 *----------------------------------------------------------------
 * Use a current mirror transistor from the SUN_TR_GF130N library
-IPB1 0 VBN1 dc 2.5u
-XMNB0 VBN1 VBN1 VSS VSS NCHCM2
+* IPB1 0 VBN1 dc 2.5u
+* XMNB0 VBN1 VBN1 VSS VSS NCHCM2
 
 
 *----------------------------------------------------------------
 * DUT
 *----------------------------------------------------------------
 .include pixelSensor.cir
-XCOMP VCMP_OUT VSTORE VRAMP VBN1 NODE1 NODE2 NODE3 NODE4 VDD VSS COMP_DET
-
-*----------------------------------------------------------------
-* RAMP
-*----------------------------------------------------------------
-* Use a capacitor and current source to model a ramp
-* I = C x dV/dt, where
-* dt = PW_CONVERT
-* C = 1n
-* dV = VADC_MAX - VADC_MIN
-BR1 0 VRAMP I = V(CONVERT)*( 1n*(VADC_MAX - VADC_MIN)/PW_CONVERT)
-CR1 VRAMP 0 1n ic=0
-
-* SPICE freaks out if any node only have current sources and capacitors on it. so insert a resistor to ground
-R1 VRAMP 0 1T
-
-* Model reset as a variable resistor to
-BR2 VRAMP VMIN I=V(ERASE)*V(VRAMP,VMIN)/100
-
+XINV VIN VOUT VDD VSS INV
 
 *----------------------------------------------------------------
 * NGSPICE control
@@ -130,12 +105,12 @@ BR2 VRAMP VMIN I=V(ERASE)*V(VRAMP,VMIN)/100
 set color0=white
 set color1=black
 unset askquit
-tran 1n 60u
+tran 1n 1u
 *plot V(ERASE) V(EXPOSE) V(CONVERT) V(READ)
 * plot V(VRAMP) V(CONVERT) V(ERASE)
 * plot V(DO)
-plot V(vcmp_out) V(VSTORE) V(VRAMP) V(ERASE)
-* plot I(VDD)  title "Comparator current drain"
+plot V(VIN) V(VOUT)
+plot I(VDD)  title "Inverter current drain"
 
 * plot v(xdut.xm1.xm1.vg) v(xdut.xm1.xm1.dmem)
 * plot v(xdut.xm1.xm2.vg) v(xdut.xm1.xm2.dmem)

@@ -31,9 +31,10 @@
 *----------------------------------------------------------------
 .include ../../models/ptm_130_ngspice.spi
 
-.param p_wp = 1
-.param length = 0.13u
-.param width = 0.65u
+.param p_wp = 2.56
+.param length = 0.3u
+.param width = 0.1u
+.param wt = 0.1u
 
 .SUBCKT PIXEL_SENSOR VBN1 VRAMP VRESET ERASE EXPOSE READ
 + DATA_7 DATA_6 DATA_5 DATA_4 DATA_3 DATA_2 DATA_1 DATA_0 VDD VSS
@@ -71,40 +72,27 @@ C1 VG VSS 1p
 .ENDS
 
 .SUBCKT SENSOR VRESET VSTORE ERASE EXPOSE VDD VSS
+* .SUBCKT SENSOR VSTORE ERASE EXPOSE VDD VSS
 
 * Capacitor to model gate-source capacitance
 C1 VSTORE VSS 100f
 Rleak VSTORE VSS 100T
 
-* Switch to reset voltage on capacitor
-BR1 VRESET VSTORE I=V(ERASE)*V(VRESET,VSTORE)/1k
+MN1 NODE1 VPG NODE1 NODE1 nmos W=wt L={3*wt}
 
-* Switch to expose pixel
-BR2 VPG VSTORE I=V(EXPOSE)*V(VSTORE,VPG)/1k
+MN2 NODE1 EXPOSE VSTORE VSTORE nmos W=wt L={3*wt}
 
-* Model photocurrent
-Rphoto VPG VSS 1G
+MN3 VRESET ERASE VSTORE VSTORE nmos W=wt L={3*wt}
+
+I3 0 VPG dc 0.00001n
 .ENDS
 
-.SUBCKT COMP_SIM VCMP_OUT VSTORE VRAMP VDD VSS
-
-* Model comparator
-BC1 VCMP_OUT VSS V = ((atan(100000*(V(VSTORE) - V(VRAMP)))) + 1.58)/3.14*1.5
-
-.ENDS
-
-* VSTORE = V_IN
 .SUBCKT COMP VCMP_OUT VSTORE VRAMP VBN1 VDD VSS
 
-MP1 NODE1 NODE1 VDD VDD pmos W={width*p_wp} L=length 
-MP2 NODE2 NODE1 VDD VDD pmos W={width*p_wp} L=length
-MP3 NODE4 NODE2 VDD VDD pmos W={width*p_wp} L=length
-MP4 VCMP_OUT NODE4 VDD VDD pmos W={width*p_wp} L=length
-
-* MP1 VDD NODE1 NODE1 NODE1 pmos W={width*2.56} L=length 
-* MP2 VDD NODE1 NODE2 NODE2 pmos W={width*2.56} L=length
-* MP3 VDD NODE2 NODE4 NODE4 pmos W={width*2.56} L=length
-* MP4 VDD NODE4 VCMP_OUT VCMP_OUT pmos W={width*2.56} L=length
+MP1 NODE1 NODE1 VDD VDD pmos W={width*p_wp} L={length*p_wp}
+MP2 NODE2 NODE1 VDD VDD pmos W={width*p_wp} L={length*p_wp}
+MP3 NODE4 NODE2 VDD VDD pmos W={width*p_wp} L={length*p_wp}
+MP4 VCMP_OUT NODE4 VDD VDD pmos W={width*p_wp} L={length*p_wp}
 
 MN1 NODE1 VSTORE NODE3 NODE3 nmos W=width L=length
 MN2 NODE3 VBN1 VSS VSS nmos W=width L=length
@@ -112,5 +100,30 @@ MN3 NODE2 VRAMP NODE3 NODE3 nmos W=width L=length
 MN4 NODE4 VBN1 VSS VSS nmos W=width L=length
 MN5 VCMP_OUT NODE4 VSS VSS nmos W=width L=length
 
+.ENDS
+
+.SUBCKT INV VIN VOUT VDD VSS
+
+MN1 VOUT VIN VSS VSS nmos W=width L={p_wp*length}
+
+MP1 VOUT VIN VDD VDD pmos W=width L={p_wp*length}
 
 .ENDS
+
+* Same circuit as COMP but with more nodes to plot
+.SUBCKT COMP_DET VCMP_OUT VSTORE VRAMP VBN1 NODE1 NODE2 NODE3 NODE4 VDD VSS
+
+MP1 NODE1 NODE1 VDD VDD pmos W={width*p_wp} L={length*p_wp} m=2
+MP2 NODE2 NODE1 VDD VDD pmos W={width*p_wp} L={length*p_wp} m=2
+MP3 NODE4 NODE2 VDD VDD pmos W={width*p_wp} L={length*p_wp}
+MP4 VCMP_OUT NODE4 VDD VDD pmos W={width*p_wp} L={length*p_wp}
+
+MN1 NODE1 VSTORE NODE3 NODE3 nmos W=width L=length
+MN2 NODE3 VBN1 VSS VSS nmos W=width L=length
+MN3 NODE2 VRAMP NODE3 NODE3 nmos W=width L=length
+MN4 NODE4 VBN1 VSS VSS nmos W=width L=length
+MN5 VCMP_OUT NODE4 VSS VSS nmos W=width L=length
+
+.ENDS
+
+
