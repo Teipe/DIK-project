@@ -188,7 +188,10 @@ tran 1n 60u
 plot V(XDUT.VSTORE) V(ERASE) V(EXPOSE) V(CONVERT) V(VRAMP) V(XDUT.VCMP_OUT) V(READ)
 
 * plot v(xdut.xm1.xm1.vg) v(xdut.xm1.xm1.dmem) V(XDUT.VCMP_OUT) V(READ)
-plot i(VDD) i(VSS)
+plot i(VDD)
+plot i(VSS)
+* plot i(EXPOSE)
+* plot i(ERASE)
 * plot v(xdut.xm1.xm2.vg) v(xdut.xm1.xm2.dmem)
 * plot v(xdut.xm1.xm3.vg) v(xdut.xm1.xm3.dmem)
 * plot v(xdut.xm1.xm4.vg) v(xdut.xm1.xm4.dmem)
